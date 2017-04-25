@@ -8,7 +8,7 @@ from PIL import ImageGrab
 from PIL import Image
 from numpy import ones,vstack
 from numpy.linalg import lstsq
-from directkeys import PressKey, W, A, S, D
+from directkeys import PressKey, ReleaseKey, W, A, S, D
 from statistics import mean
 
 
@@ -122,8 +122,10 @@ def process_img(image):
 	# more info: http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_imgproc/py_houghlines/py_houghlines.html
 	# rho   theta   thresh  min length, max gap:        
 	lines = cv2.HoughLinesP(processed_img, 1, np.pi/180, 180, 20, 15)
+	m1 = 0
+	m2 = 0
 	try:
-		l1, l2 = draw_lanes(original_image,lines)
+		l1, l2, m1, m2 = draw_lanes(original_image,lines)
 		cv2.line(original_image, (l1[0], l1[1]), (l1[2], l1[3]), [0,255,0], 30)
 		cv2.line(original_image, (l2[0], l2[1]), (l2[2], l2[3]), [0,255,0], 30)
 	except Exception as e:
@@ -140,13 +142,35 @@ def process_img(image):
 	except Exception as e:
 		pass
 
-	return processed_img,original_image
+	return processed_img,original_image, m1, m2
 
+def straight():
+    PressKey(W)
+    ReleaseKey(A)
+    ReleaseKey(D)
+
+def left():
+    PressKey(A)
+    ReleaseKey(W)
+    ReleaseKey(D)
+    ReleaseKey(A)
+
+def right():
+    PressKey(D)
+    ReleaseKey(A)
+    ReleaseKey(W)
+    ReleaseKey(D)
+
+def slow_ya_roll():
+    ReleaseKey(W)
+    ReleaseKey(A)
+    ReleaseKey(D)
+	
 """Обрабатываем один кадр
 """
 def process_frame(frame):
 	image = np.array(frame)
-	new_screen,original_image = process_img(image)
+	new_screen, original_image, img3, img4 = process_img(image)
 	return new_screen, cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB);
 
 def main():
@@ -165,9 +189,20 @@ def main():
 			screen =  np.array(ImageGrab.grab(bbox=(0,40,800,640)))
 			print('Frame took {} seconds'.format(time.time()-last_time))
 			last_time = time.time()
-			new_screen,original_image = process_img(screen)
+			new_screen,original_image, m1, m2 = process_img(screen)
 			cv2.imshow('window', new_screen)
 			cv2.imshow('window2',cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB))
+			
+			if m1 < 0 and m2 < 0:
+				right()
+				print('right')
+			elif m1 > 0  and m2 > 0:
+				left()
+				print('left')
+			else:
+				straight()
+				print('straight')
+			
 			if cv2.waitKey(25) & 0xFF == ord('q'):
 				cv2.destroyAllWindows()
 				break
