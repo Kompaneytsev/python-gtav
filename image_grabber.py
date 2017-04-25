@@ -1,11 +1,16 @@
 import numpy as np
-from PIL import ImageGrab
 import cv2
 import time
+import argparse
+import os
+
+from PIL import ImageGrab
+from PIL import Image
 from numpy import ones,vstack
 from numpy.linalg import lstsq
 from directkeys import PressKey, W, A, S, D
 from statistics import mean
+
 
 def roi(img, vertices):
 	#blank mask:
@@ -17,7 +22,6 @@ def roi(img, vertices):
 	#returning the image only where mask pixels are nonzero
 	masked = cv2.bitwise_and(img, mask)
 	return masked
-
 
 def draw_lanes(img, lines, color=[0, 255, 255], thickness=3):
 
@@ -104,20 +108,20 @@ def draw_lanes(img, lines, color=[0, 255, 255], thickness=3):
 	except Exception as e:
 		print(str(e))
 
-
 def process_img(image):
 	original_image = image
 	# convert to gray
 	processed_img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	# edge detection
-	processed_img =  cv2.Canny(processed_img, threshold1 = 200, threshold2=300)
+	processed_img = cv2.Canny(processed_img, threshold1 = 200, threshold2=300)
 	processed_img = cv2.GaussianBlur(processed_img,(5,5),0)
-	vertices = np.array([[10,500],[10,300],[300,200],[500,200],[800,300],[800,500]], np.int32)
+	# vertices = np.array([[10,500],[10,200],[300,200],[500,200],[800,300],[800,500]], np.int32)
+	vertices = np.array([[10,500],[10,200],[800,200],[800,500]], np.int32)
 	processed_img = roi(processed_img, [vertices])
 
 	# more info: http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_imgproc/py_houghlines/py_houghlines.html
-	#                                     rho   theta   thresh  min length, max gap:        
-	lines = cv2.HoughLinesP(processed_img, 1, np.pi/180, 180,      20,       15)
+	# rho   theta   thresh  min length, max gap:        
+	lines = cv2.HoughLinesP(processed_img, 1, np.pi/180, 180, 20, 15)
 	try:
 		l1, l2 = draw_lanes(original_image,lines)
 		cv2.line(original_image, (l1[0], l1[1]), (l1[2], l1[3]), [0,255,0], 30)
@@ -138,20 +142,34 @@ def process_img(image):
 
 	return processed_img,original_image
 
-
+"""Обрабатываем один кадр
+"""
+def process_frame(frame):
+	image = np.array(frame)
+	new_screen,original_image = process_img(image)
+	return new_screen, cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB);
 
 def main():
-	last_time = time.time()
-	while True:
-		screen =  np.array(ImageGrab.grab(bbox=(0,40,800,640)))
-		print('Frame took {} seconds'.format(time.time()-last_time))
+	ap = argparse.ArgumentParser()
+	ap.add_argument("-i", "--image", required=False, help="path to input image")
+	args = vars(ap.parse_args())
+	if args["image"]:
+		image_path = os.path.abspath(args["image"])
+		log_path = os.path.join(os.path.dirname(__file__), 'logs', os.path.basename(image_path))
+		img1, img2 = process_frame(Image.open(image_path))
+		cv2.imwrite(log_path + "_img1.bmp", img1)
+		cv2.imwrite(log_path + "_img2.bmp", img2)
+	else:
 		last_time = time.time()
-		new_screen,original_image = process_img(screen)
-		cv2.imshow('window', new_screen)
-		cv2.imshow('window2',cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB))
-		#cv2.imshow('window',cv2.cvtColor(screen, cv2.COLOR_BGR2RGB))
-		if cv2.waitKey(25) & 0xFF == ord('q'):
-			cv2.destroyAllWindows()
-			break
+		while True:
+			screen =  np.array(ImageGrab.grab(bbox=(0,40,800,640)))
+			print('Frame took {} seconds'.format(time.time()-last_time))
+			last_time = time.time()
+			new_screen,original_image = process_img(screen)
+			cv2.imshow('window', new_screen)
+			cv2.imshow('window2',cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB))
+			if cv2.waitKey(25) & 0xFF == ord('q'):
+				cv2.destroyAllWindows()
+				break
 
 main()

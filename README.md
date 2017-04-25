@@ -44,7 +44,13 @@ A cross-platform module for GUI automation for human beings. Control the keyboar
 ```
 $ pip install pyautogui
 ```
+### matplotlib
+```
+$ pip install matplotlib
+```
 ## Полезные ссылки
+### Общие ссылки
+* [Image Segmentation with Watershed Algorithm](http://docs.opencv.org/3.1.0/d3/db4/tutorial_py_watershed.html)
 ### Задача по определению людей 
 * [Определение людей на изображении](http://www.pyimagesearch.com/2015/11/09/pedestrian-detection-opencv/)
 * [Partial Human Detection](http://stackoverflow.com/questions/43099540/opencv-3-python-partial-human-detection)
